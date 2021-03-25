@@ -14,7 +14,7 @@ HEIGHT = 20
 THICKNESS = 1
 
 # Center mouse positon to grid coordinates
-def row_col_pos(pos_x, pos_y):
+def row_col_pos(pos_x: int, pos_y: int) -> tuple:
 	column = pos_x // (WIDTH + THICKNESS)
 	row = pos_y // (HEIGHT + THICKNESS)
 	return (row, column)

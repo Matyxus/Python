@@ -8,7 +8,7 @@ class Grid(object):
 		self.size = size
 		self.grid = numpy.zeros((self.size, self.size), dtype=int)
 	# Create NxN grid
-	def create(self):
+	def create(self) -> None:
 		assert (self.size >= 5 and self.size <= 64)
 		self.grid = numpy.zeros((self.size, self.size), dtype=int) # a[15, 1] = 5
 	# Takes 2 tuples as arguments
@@ -16,7 +16,7 @@ class Grid(object):
 		self.grid[start] = const.GREEN
 		self.grid[end] = const.ACQUA
 	# Update grid colors to screen
-	def grid_update(self, screen):
+	def grid_update(self, screen) -> None:
 		i = -1
 		for row in self.grid:
 			i += 1
@@ -30,7 +30,7 @@ class Grid(object):
 				const.WIDTH, const.HEIGHT])
 		pygame.display.update()
 	# For debugging purposes
-	def grid_print(self):
+	def grid_print(self) -> None:
 		print("Now printing grid")
 		for row in self.grid:
 			print(row)
