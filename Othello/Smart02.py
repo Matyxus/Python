@@ -63,9 +63,11 @@ class Smart02(object):
 				moves_list ^= move
 				new_curr_board, new_opp_board = self.place_piece(curr_board, opp_board, move)
 				the_score, the_move = self.search(new_opp_board, new_curr_board, depth-1, alpha, beta, False)
+				# Score, move saving.
 				if (the_score > alpha):
 					alpha = the_score
 					best_move = move
+				# Pruning.
 				if beta <= alpha:
 					self.cut_off += 1
 					break
@@ -77,84 +79,14 @@ class Smart02(object):
 				moves_list ^= move
 				new_curr_board, new_opp_board = self.place_piece(curr_board, opp_board, move)
 				the_score, the_move = self.search(new_opp_board, new_curr_board, depth-1, alpha, beta, True)
+				# Score, move saving.
 				if (the_score < beta):
 					beta = the_score
 					best_move = move
+				# Pruning.
 				if beta <= alpha:
 					self.cut_off += 1
 					break
 			return beta, best_move
 
-
-"""
-def convert_to_array(white_board: int, black_board: int) -> list:
-	board = [[-1 for i in range(8)] for j in range(8)]
-	index = 64
-	row = 0
-	col = 0
-	while white_board or black_board:
-		#print(row, col)
-		index -= 1
-		shift = 1 << index
-		assert(row <= 7 and col <= 7)
-		if (shift & white_board):
-			board[col][row] = const.WHITE
-			white_board ^= shift
-		elif (shift & black_board):
-			board[col][row] = const.BLACK
-			black_board ^= shift
-		col += 1
-		if (col == 8):
-			col = 0
-			row += 1
-	return board
-
-def another_perf(board, depth, player, opp) -> int:
-	moves_list = board.get_moves(player, opp)
-	if (depth == 0 or len(moves_list) == 0):
-		return 1
-	count = 0
-	for move in moves_list:
-		new_board = deepcopy(board)
-		new_board.play(move[0], move[1])
-		count += another_perf(new_board, depth-1, opp, player)
-	return count
-
-def print_board(array: list):
-	for i in range(8):
-		print(array[i])
-
-def get_index(row, col):
-	return (8*(8-row)-col-1)
-
-def get_row_col(index):
-	row = index%8
-	col = (8-index%8)-1
-	return (row, col)
-
-def convert_moves_to_bin(moves_list):
-	moves = 0
-	for move in moves_list:
-		moves |= (1 << get_index(*move))
-	return moves
-
-
-def convert_array_to_bin(array: list) -> tuple:
-	white_board = 0
-	black_board = 0
-	row = 7
-	col = 7
-	for i in range(64):
-		shift = (1 << i)
-		assert(row >= 0 and col >= 0 and row <= 7 and col <= 7)
-		if array[row][col] == const.WHITE:
-			white_board |= shift
-		elif array[row][col] == const.BLACK:
-			black_board |= shift
-		col -= 1
-		if (col == -1):
-			col = 7
-			row -= 1
-	return (white_board, black_board)
-"""
 

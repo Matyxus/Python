@@ -5,11 +5,14 @@ BLACK = 1
 DRAW = 2
 COLORS = [(255, 255, 255), (0, 0, 0)]
 ROW = COLUMN = 8
-WIDTH = 20
-HEIGHT = 20
+WIDTH = 0
+HEIGHT = 0
+PIECE_WIDTH = 0
+PIECE_HEIGHT = 0
 THICKNESS = 1
-piece_width = 40*2
-piece_height = 40*2
+BOARD_SIZE = 0
+BUTTON_HEIGHT = 0
+BUTTON_WIDTH = 0
 # start of the game
 black_start_board = 0x810000000
 white_start_board = 0x1008000000

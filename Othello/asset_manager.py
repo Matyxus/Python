@@ -1,5 +1,5 @@
 import pygame
-
+import const
 
 class Asset_manager(object):
 	""" Holder of images. """
@@ -22,12 +22,9 @@ class Asset_manager(object):
 		try:
 			# Pieces.
 			self.pieces_type.append(pygame.image.load("Images/whitePiece.png"))
-			self.pieces_type[0] = pygame.transform.scale(self.pieces_type[0] , (76, 76))
 			self.pieces_type.append(pygame.image.load("Images/blackPiece.png"))
-			self.pieces_type[1] = pygame.transform.scale(self.pieces_type[1] , (76, 76))
 			# Gameboard.
 			self.gameBoard_img = pygame.image.load("Images/board.png")
-			self.gameBoard_img = pygame.transform.scale(self.gameBoard_img, (640, 640))
 			# Play button.
 			self.play_button.append(pygame.image.load("Images/startButton.png"))
 			self.play_button.append(pygame.image.load("Images/startButton_hover.png"))
@@ -52,11 +49,22 @@ class Asset_manager(object):
 			# Back button.
 			self.back_button.append(pygame.image.load("Images/backButton.png"))
 			self.back_button.append(pygame.image.load("Images/backButton_hover.png"))
+			# Setup constants.
+			self.set_constants()
 		except Exception as e:
 			print("Coudnt find images, make sure to not change the name of files or directory.")
 			return False
 		print("Images loaded succesfully.")
 		return True
+
+	def set_constants(self) -> None:
+		const.WIDTH = self.gameBoard_img.get_width() // const.ROW
+		const.HEIGHT = self.gameBoard_img.get_height() // const.COLUMN
+		const.PIECE_WIDTH = self.pieces_type[const.WHITE].get_width() + 4
+		const.PIECE_HEIGHT = self.pieces_type[const.WHITE].get_height() + 4
+		const.BOARD_SIZE = self.gameBoard_img.get_width()
+		const.BUTTON_WIDTH = self.play_button[0].get_width()
+		const.BUTTON_HEIGHT = self.play_button[0].get_height()
 
 
 # Check if images can be loaded without error.

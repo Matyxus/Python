@@ -29,5 +29,6 @@ class Button(object):
 		else:
 			screen.blit(self.img_down, (self.rect[0], self.rect[1]))
 
-
+if __name__ == '__main__':
+	pass
 		
