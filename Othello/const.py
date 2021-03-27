@@ -2,8 +2,9 @@
 WINDOW_SIZE = [948, 640]
 WHITE = 0
 BLACK = 1
+GREY = 2
 DRAW = 2
-COLORS = [(255, 255, 255), (0, 0, 0)]
+COLORS = [(255, 255, 255), (0, 0, 0), (195, 195, 195)]
 ROW = COLUMN = 8
 WIDTH = 0
 HEIGHT = 0

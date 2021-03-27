@@ -1,23 +1,16 @@
 import const
 import Buttons
-import move_generator
 import asset_manager
+import board
 #
 import pygame
 import PySimpleGUI as sg
-import tkinter as tk
-import os
-from tkinter import filedialog
 
 class Othello():
-	""" Logic of game Othello """
+	""" Logic of game Reversi. """
 	def __init__(self):
-		self.current_player = const.WHITE
-		self.opponent = const.BLACK
-		self.move_gen = move_generator.MoveGenerator()
+		self.game_board = board.Board()
 		self.assets = asset_manager.Asset_manager()
-		self.boards = [const.white_start_board, const.black_start_board]
-		self.history = [const.white_start_board, const.black_start_board]
 		self.buttons = {}
 		self.message = {const.WHITE : "White player won", const.BLACK : "Black player won", const.DRAW : "Draw"}
 		self.computer_player = None
@@ -26,57 +19,20 @@ class Othello():
 		self.re_playing = False
 		self.screen = None
 		self.clock = None
-		self.current_index = len(self.history)
-
-	# Swaps players.
-	def swap_players(self) -> None:
-		temp = self.opponent
-		self.opponent = self.current_player
-		self.current_player = temp
-
-	# Checks for validity of move, than places it, than checks for win.
-	def check_move(self, x: int, y: int) -> None:
-		print(f"Checking if move {x, y} is legal")
-		if self.move_gen.legal_move(x, y):
-			print("Is legal")
-			x,y = self.move_gen.invertor(x, y)
-			self.make_move(1 << (x+y))
-			if (self.check_win()):
-				print(self.winner())
-				self.ask_restart()
+		#
+		self.myFont = None
+		self.counts = [None, None]
 
 	# Determines who won.
 	def winner(self) -> str:
-		curr_count = bin(self.boards[self.current_player]).count("1")
-		opp_count = bin(self.boards[self.opponent]).count("1")
-		if (curr_count > opp_count):
-			return self.message[self.current_player]
-		elif (curr_count == opp_count):
+		white_count = self.game_board.pieces_count[const.WHITE]
+		black_count = self.game_board.pieces_count[const.BLACK]
+		if (white_count > black_count):
+			return self.message[const.WHITE]
+		elif (white_count == black_count):
 			return self.message[const.DRAW]
 		else:
-			return self.message[self.opponent]
-
-	# Places piece and swaps pieces.
-	def make_move(self, pos: int) -> None:
-		self.boards[self.current_player], self.boards[self.opponent] = self.move_gen.place_piece(
-			self.boards[self.current_player], self.boards[self.opponent], pos)
-
-		self.history.append(self.boards[const.WHITE])
-		self.history.append(self.boards[const.BLACK])
-		self.swap_players()
-		self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
-
-	# Checks if game ended.
-	def check_win(self) -> bool:
-		if (self.move_gen.possible_moves == 0):
-			print("Current player cant make move, swaping")
-			self.swap_players()
-			self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
-			if (self.move_gen.possible_moves == 0):
-				print("End of game, deciding who won")
-				return True
-			return False
-		return False
+			return self.message[const.BLACK]
 
 	# Initializes images, variables necessary for start.
 	def init(self) -> None:
@@ -84,6 +40,7 @@ class Othello():
 		self.screen = pygame.display.set_mode(const.WINDOW_SIZE)
 		pygame.display.set_caption("Othello")
 		self.clock = pygame.time.Clock()
+		self.myFont = pygame.font.SysFont("Times New Roman", 80)
 		# Load images.
 		if not self.assets.load_images():
 			self.quit_game()
@@ -101,51 +58,63 @@ class Othello():
 
 		# Save button.
 		self.buttons["save"] = (True, Buttons.Button(pygame.Rect(const.BOARD_SIZE,
-			const.BUTTON_HEIGHT, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.save_game,
+			const.BUTTON_HEIGHT+3, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.game_board.save_game,
 				self.assets.save_button[self.assets.IDLE], self.assets.save_button[self.assets.HOVER]))
 
 		# Load button.
 		self.buttons["load"] = (True, Buttons.Button(pygame.Rect(const.BOARD_SIZE,
-			const.BUTTON_HEIGHT*2, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.load_game,
+			const.BUTTON_HEIGHT*2+6, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.game_board.load_game,
 				self.assets.load_button[self.assets.IDLE], self.assets.load_button[self.assets.HOVER]))
 
 		# Left arrow button.
 		self.buttons["left_arrow"] = (False, Buttons.Button(pygame.Rect(const.BOARD_SIZE,
-			const.BUTTON_HEIGHT*5, 154, const.BUTTON_HEIGHT), self.previous_board,
+			const.BUTTON_HEIGHT*3+3, 154, const.BUTTON_HEIGHT), self.game_board.previous_board,
 				 self.assets.left_arrow[self.assets.IDLE], self.assets.left_arrow[self.assets.HOVER]))
 
 		# Right arrow button.
 		self.buttons["right_arrow"] = (False, Buttons.Button(pygame.Rect(const.BOARD_SIZE+154, 
-			const.BUTTON_HEIGHT*5, 154, const.BUTTON_HEIGHT), self.next_board,
+			const.BUTTON_HEIGHT*3+3, 154, const.BUTTON_HEIGHT), self.game_board.next_board,
 				self.assets.right_arrow[self.assets.IDLE], self.assets.right_arrow[self.assets.HOVER]))
 
 		# Replay button.
 		self.buttons["replay"] = (True, Buttons.Button(pygame.Rect(const.BOARD_SIZE,
-			const.BOARD_SIZE-(const.BUTTON_HEIGHT*2), const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.replay,
+			const.BOARD_SIZE-(const.BUTTON_HEIGHT*2)-6, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.replay,
 				self.assets.replay_button[self.assets.IDLE], self.assets.replay_button[self.assets.HOVER]))
 
 		# Quit button.
 		self.buttons["quit"] = (True, Buttons.Button(pygame.Rect(const.BOARD_SIZE,
-			const.BOARD_SIZE-const.BUTTON_HEIGHT, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.quit_game,
+			const.BOARD_SIZE-const.BUTTON_HEIGHT-3, const.BUTTON_WIDTH, const.BUTTON_HEIGHT), self.quit_game,
 				self.assets.quit_button[self.assets.IDLE], self.assets.quit_button[self.assets.HOVER]))
 		
 	# Draws board and pieces on it.
 	def draw_board(self) -> None:
 		self.screen.blit(self.assets.gameBoard_img, (0, 0))
-		# blit pieces on left side and their count
-		# if self.playing or self.replaying:
-		#	.....
+		white_board = self.game_board.boards[const.WHITE]
+		black_board = self.game_board.boards[const.BLACK]
 		for row in range(const.ROW):
 			for col in range(const.COLUMN):
 				shift = (1 << (63 - (col + const.ROW*row)))
 				# White pieces.
-				if (shift & self.boards[const.WHITE]):
+				if (shift & white_board):
 					self.screen.blit(self.assets.pieces_type[const.WHITE], 
 						(const.PIECE_WIDTH*col+2, const.PIECE_HEIGHT*row+2))
 				# Black pieces.
-				if (shift & self.boards[const.BLACK]):
+				if (shift & black_board):
 					self.screen.blit(self.assets.pieces_type[const.BLACK], 
 						(const.PIECE_WIDTH*col+2, const.PIECE_HEIGHT*row+2))
+
+	# Draws count of white and black pieces.
+	def draw_counts(self) -> None:
+		white_count = self.myFont.render(
+			str(self.game_board.pieces_count[const.WHITE]), 1, const.COLORS[const.GREY])
+		self.screen.blit(white_count, (const.BOARD_SIZE, 390))
+		self.screen.blit(self.assets.pieces_type[const.WHITE], 
+			(const.BOARD_SIZE+75, 400))
+		black_count = self.myFont.render(
+			str(self.game_board.pieces_count[const.BLACK]), 1, const.COLORS[const.GREY])
+		self.screen.blit(black_count, (const.BOARD_SIZE+150, 390))
+		self.screen.blit(self.assets.pieces_type[const.BLACK], 
+			(const.BOARD_SIZE+160+70, 400))
 
 	# --------- Main program loop --------- 
 
@@ -161,6 +130,7 @@ class Othello():
 	def render(self) -> None:
 		self.screen.fill(const.COLORS[const.BLACK])
 		self.draw_board()
+		self.draw_counts()
 		for to_show, button in self.buttons.values():
 			if to_show:
 				button.display(self.screen)
@@ -179,9 +149,13 @@ class Othello():
 					# Change the x / y screen coordinates to grid coordinates
 					row, column = const.row_col_pos(*pos)
 					# Placed the piece where user click, if position is valid
-					if const.valid_pos(row, column):
+					if const.valid_pos(row, column) and self.playing:
 						print("Clicked")
-						self.check_move(row, column)
+						if (self.game_board.check_move(row, column)):
+							if (self.game_board.check_win()):
+								self.render()
+								print(self.winner())
+								self.ask_restart()
 				except AttributeError:
 					print("AttributeError")
 
@@ -208,39 +182,6 @@ class Othello():
 		else:
 			print(f"Button {button_name} does not exists.")
 		
-	# Saves the game and its history in ".txt" file.
-	def save_game(self) -> None:
-		if len(self.history) > 2:
-			root = tk.Tk()
-			root.withdraw()
-			s_file = filedialog.asksaveasfile(initialdir = os.getcwd(), defaultextension = ".txt")
-			if s_file:
-				for position in self.history:
-					s_file.write(str(position)+"\n")
-				s_file.write(str(self.current_player))
-				s_file.close()
-			root.destroy()
-			pygame.display.update()
-		else:
-			print("No moves were played!")
-
-	# Loads a game from ".txt" file.
-	def load_game(self) -> None:
-		root = tk.Tk()
-		root.withdraw()
-		s_file = filedialog.askopenfile(mode="r", filetypes = [("Text files", "*.txt")], initialdir = os.getcwd())
-		if s_file:
-			self.history = [int(i) for i in s_file.read().splitlines()]
-			s_file.close()
-			self.current_player = self.history.pop()
-			self.opponent = ((self.current_player + 1) & 1)
-			self.boards[const.BLACK] = self.history[-1]
-			self.boards[const.WHITE] = self.history[-2]
-			self.current_index = len(self.history)-2
-		root.destroy()
-		pygame.display.update()
-		self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
-
 	# Asks user if he wants to play against AI, and starting color.
 	def play(self) -> None:
 		sg.theme("Dark Brown")
@@ -260,21 +201,18 @@ class Othello():
 				if i == "Vs AI":
 					print("Playing against computer")
 				elif i == "Start as White":
-					self.current_player = const.WHITE
-					self.opponent = const.BLACK
+					self.game_board.set_players(const.WHITE)
 					print("Starting as White")
 				else:
-					self.current_player = const.BLACK
-					self.opponent = const.WHITE
+					self.game_board.set_players(const.BLACK)
 					print("Starting as Black")
-			self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
+			#self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
 		else:
 			sg.popup_cancel("User aborted")
 
 	# Takes user to replay state.
 	def replay(self) -> None:
 		self.re_playing = True
-		self.current_index = len(self.history)-2
 		# Show back button, hide replay, play button.
 		self.hide_button("play")
 		self.show_button("back")
@@ -283,20 +221,6 @@ class Othello():
 		self.show_button("left_arrow")
 		self.show_button("right_arrow")
 		
-	# In replay stata, shows previous move.
-	def previous_board(self) -> None:
-		if self.current_index-2 >= 0:
-			self.current_index -= 2
-			self.boards[const.WHITE] = self.history[self.current_index]
-			self.boards[const.BLACK] = self.history[self.current_index+1]
-
-	# In replay state, shows next move.
-	def next_board(self) -> None:
-		if self.current_index < len(self.history)-2:
-			self.current_index += 2
-			self.boards[const.WHITE] = self.history[self.current_index]
-			self.boards[const.BLACK] = self.history[self.current_index+1]
-
 	# Takes user back to starting screen.
 	def back(self) -> None:
 		# Replace first button with "play game", last button with
@@ -316,12 +240,13 @@ class Othello():
 		event = sg.PopupYesNo("Restart?", keep_on_top=True)
 		# Go back to menu
 		if event == "Yes":
-			self.boards[const.WHITE] = const.white_start_board 
-			self.boards[const.BLACK] = const.black_start_board 
-			self.history = self.history[:2]
+			self.game_board.init()
 			# Change first button
 			self.computer_player = None
 			self.playing = False
+			self.hide_button("back")
+			self.show_button("play")
+			self.show_button("replay")
 		else:
 			self.quit_game()
 
