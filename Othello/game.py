@@ -123,6 +123,9 @@ class Othello():
 		self.init()
 		while not self.done:
 			self.render()
+			self.game_board.check_computer()
+			if (self.game_board.check_win()):
+				print(self.winner)
 			self.events()
 		self.quit_game()
 
@@ -186,12 +189,15 @@ class Othello():
 	def play(self) -> None:
 		sg.theme("Dark Brown")
 		event, values = sg.Window("Game settings", [[sg.Text("Select ->"), 
-			sg.Listbox(["Vs AI", "Start as White", "Start as Black"], 
-			select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, size=(40, 3), key="LB")],
-		    	[sg.Button("Ok"), sg.Button("Cancel")]], keep_on_top=True).read(close=True)
+			sg.Listbox(["Vs AI", "Start as White", "Start as Black", "Ai start as White",
+				"Ai start as Black"], 
+				select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, size=(40, 5), key="LB")],
+		    		[sg.Button("Ok"), sg.Button("Cancel")]], keep_on_top=True).read(close=True)
 
 		if event == "Ok":
 			self.playing = True
+			ai = False
+			ai_color = const.WHITE
 			# Add back button, hide play button.
 			self.hide_button("play")
 			self.hide_button("replay")
@@ -200,13 +206,20 @@ class Othello():
 			for i in values["LB"]:
 				if i == "Vs AI":
 					print("Playing against computer")
+					ai = True
 				elif i == "Start as White":
 					self.game_board.set_players(const.WHITE)
 					print("Starting as White")
+				elif i == "Ai start as White":
+					self.game_board.set_players(const.WHITE)
+				elif i == "Ai start as Black":
+					self.game_board.set_players(const.BLACK)
+					ai_color = const.BLACK
 				else:
 					self.game_board.set_players(const.BLACK)
 					print("Starting as Black")
-			#self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
+			if ai:
+				self.game_board.start_computer(ai_color)
 		else:
 			sg.popup_cancel("User aborted")
 
@@ -227,6 +240,7 @@ class Othello():
 		self.show_button("play")
 		self.hide_button("back")
 		self.show_button("replay")
+		self.game_board.remove_computer()
 		if self.re_playing:
 			self.re_playing = False
 			# Hide both arrow buttons.
@@ -240,6 +254,7 @@ class Othello():
 		event = sg.PopupYesNo("Restart?", keep_on_top=True)
 		# Go back to menu
 		if event == "Yes":
+			self.game_board.remove_computer()
 			self.game_board.init()
 			# Change first button
 			self.computer_player = None
@@ -259,6 +274,7 @@ class Othello():
 if __name__ == '__main__':
 	othello = Othello()
 	othello.run()
+
 
 
 

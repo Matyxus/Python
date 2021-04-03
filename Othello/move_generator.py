@@ -13,7 +13,7 @@ class MoveGenerator():
 		self.LEFT_SIDE = 0x7F7F7F7F7F7F7F7F
 		self.BIT_ALIGN64 = 0xFFFFFFFFFFFFFF
 		self.directions = [self.North, self.South, self.East, self.West, 
-						   self.NorthWest, self.NorthEast, self.SouthWest, self.SouthEast]
+						   self.NorthWest, self.SouthEast, self.SouthWest, self.NorthEast]
 		self.possible_moves = 0
 		self.hash_gen = Zobrist.Zobrist(0x1008000000, 0x810000000)
 		self.count = 0
@@ -116,7 +116,7 @@ class MoveGenerator():
 	# Performance and Correctness test with hashing.
 	# Inputs are 64-bit numbers (bitboards).
 	# Depth is positive integer (recommended under 11).
-	def perft_hash(self, curr_board: int, opp_board: int, depth: int):
+	def perft_hash(self, curr_board: int, opp_board: int, depth: int) -> None:
 		# Check hash
 		self.hash_gen.hash ^= self.hash_gen.sides[self.side_to_move]
 		#hash_now = self.current_hash
@@ -194,7 +194,7 @@ class MoveGenerator():
 		return
 
 	# Performance and Correctness test.
-	def perft(self, curr_board: int, opp_board: int, depth: int):
+	def perft(self, curr_board: int, opp_board: int, depth: int) -> None:
 		moves_list = self.generate_moves(curr_board, opp_board)
 		# Swap players if depth is not 1.
 		if moves_list == 0: # There is only one move.

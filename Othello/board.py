@@ -3,7 +3,7 @@ import tkinter as tk
 import os
 from tkinter import filedialog
 import move_generator
-
+import Computer
 class Board(object):
 	""" Board of reversi. """
 	def __init__(self):
@@ -14,6 +14,7 @@ class Board(object):
 		self.current_player = None
 		self.opponent = None
 		self.move_gen = move_generator.MoveGenerator()
+		self.computer_player = None
 		self.init()
 
 	# Checks validity of a move, than places it.
@@ -23,8 +24,6 @@ class Board(object):
 			print("Is legal")
 			x,y = self.move_gen.invertor(x, y)
 			self.make_move(1 << (x+y))
-			self.current_index += 2
-			self.count_pieces()
 			return True
 		else:
 			print("Not legal")
@@ -39,8 +38,23 @@ class Board(object):
 		self.history.append(self.boards[const.BLACK])
 		self.swap_players()
 		self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
+		self.current_index += 2
+		self.count_pieces()
 
-	
+	def check_computer(self) -> None:
+		if self.computer_player != None:
+			if self.current_player == self.computer_player.get_player():
+				move = self.computer_player.move(self.boards[self.current_player], self.boards[self.opponent])
+				assert(move & self.move_gen.possible_moves != 0)
+				self.make_move(move)
+
+	def start_computer(self, color: int) -> None:
+		self.computer_player = None
+		self.computer_player = Computer.Player(color, (color+1) & 1)
+
+	def remove_computer(self) -> None:
+		self.computer_player = None
+
 	# Checks if game ended.
 	def check_win(self) -> bool:
 		if (self.move_gen.possible_moves == 0):
@@ -55,6 +69,7 @@ class Board(object):
 
 	# Sets variables to default values.
 	def init(self) -> None:
+		self.remove_computer()
 		self.boards = [const.white_start_board, const.black_start_board]
 		self.history = [const.white_start_board, const.black_start_board]
 		self.current_index = 0
@@ -111,6 +126,7 @@ class Board(object):
 			self.boards[const.WHITE] = self.history[-2]
 			self.current_index = len(self.history)-2
 			self.count_pieces()
+			self.remove_computer()
 		root.destroy()
 		self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
 
