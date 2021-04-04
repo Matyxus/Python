@@ -90,7 +90,8 @@ Move generation: (For black)
 				targets |= direction(targets) & enemy_board
 		Repeat 5 times, because we already shifted once, so now at the end of loop we are at row 2.
 		Finally to all possible moves add what we already found (in our case only 1 piece), shift it again, so
-		that we are on last row (1), and "AND" (&) with empty board
+		that we are on last row (1), and "AND" (&) with empty board -> because for there to be a move, it must be
+		on a empty square.
 
 		possible_moves |= (direction(targets) & empty_board)
 		direction(targets) -> 
