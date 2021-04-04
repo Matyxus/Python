@@ -1,6 +1,6 @@
 import random
 random.seed(42)
-
+#https://en.wikipedia.org/wiki/Zobrist_hashing
 class Zobrist(object):
 	"""docstring for Zobrist"""
 	def __init__(self, white_board: int, black_board: int):

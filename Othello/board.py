@@ -1,11 +1,13 @@
-import const
 import tkinter as tk
 import os
 from tkinter import filedialog
+#
+import const
 import move_generator
 import Computer
+
 class Board(object):
-	""" Board of reversi. """
+	""" Board of Reversi. """
 	def __init__(self):
 		self.boards = None
 		self.history = None
@@ -19,14 +21,10 @@ class Board(object):
 
 	# Checks validity of a move, than places it.
 	def check_move(self, x: int, y: int) -> bool:
-		print(f"Checking if move {x, y} is legal")
 		if self.move_gen.legal_move(x, y):
-			print("Is legal")
 			x,y = self.move_gen.invertor(x, y)
 			self.make_move(1 << (x+y))
 			return True
-		else:
-			print("Not legal")
 		return False
 
 	# Places piece and swaps pieces.
@@ -41,28 +39,20 @@ class Board(object):
 		self.current_index += 2
 		self.count_pieces()
 
+	# Check if there is computer player, and if its his turns, plays move found by it.
 	def check_computer(self) -> None:
 		if self.computer_player != None:
 			if self.current_player == self.computer_player.get_player():
 				move = self.computer_player.move(self.boards[self.current_player], self.boards[self.opponent])
-				assert(move & self.move_gen.possible_moves != 0)
 				self.make_move(move)
-
-	def start_computer(self, color: int) -> None:
-		self.computer_player = None
-		self.computer_player = Computer.Player(color, (color+1) & 1)
-
-	def remove_computer(self) -> None:
-		self.computer_player = None
 
 	# Checks if game ended.
 	def check_win(self) -> bool:
 		if (self.move_gen.possible_moves == 0):
-			print("Current player cant make move, swaping")
 			self.swap_players()
 			self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
+			# Both players cant move, end of game.
 			if (self.move_gen.possible_moves == 0):
-				print("End of game, deciding who won")
 				return True
 			return False
 		return False
@@ -87,6 +77,7 @@ class Board(object):
 			self.boards[const.WHITE] = self.history[self.current_index]
 			self.boards[const.BLACK] = self.history[self.current_index+1]
 			self.count_pieces()
+			self.swap_players()
 
 	# In replay state, shows next move.
 	def next_board(self) -> None:
@@ -95,9 +86,11 @@ class Board(object):
 			self.boards[const.WHITE] = self.history[self.current_index]
 			self.boards[const.BLACK] = self.history[self.current_index+1]
 			self.count_pieces()
+			self.swap_players()
 
 	# Saves the game and its history in ".txt" file.
 	def save_game(self) -> None:
+		# If any moves were played.
 		if len(self.history) > 2:
 			root = tk.Tk()
 			root.withdraw()
@@ -108,8 +101,6 @@ class Board(object):
 				s_file.write(str(self.current_player))
 				s_file.close()
 			root.destroy()
-		else:
-			print("No moves were played!")
 
 	# Loads a game from ".txt" file.
 	def load_game(self) -> None:
@@ -148,6 +139,14 @@ class Board(object):
 		self.current_player = starting_player
 		self.opponent = ((self.current_player + 1) & 1)
 		self.move_gen.generate_moves(self.boards[self.current_player], self.boards[self.opponent])
+
+	# Adds computer player.
+	def start_computer(self, color: int) -> None:
+		self.computer_player = Computer.Player(color, (color+1) & 1)
+
+	# Removes computer player.
+	def remove_computer(self) -> None:
+		self.computer_player = None
 
 
 if __name__ == '__main__':

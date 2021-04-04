@@ -17,7 +17,7 @@ class Asset_manager(object):
 		self.HOVER = 1
 		self.IDLE = 0
 
-	#Loads images, returns true on success else false.
+	# Loads images, returns true on success else false.
 	def load_images(self) -> bool:
 		try:
 			# Pieces.
@@ -54,9 +54,9 @@ class Asset_manager(object):
 		except Exception as e:
 			print("Coudnt find images, make sure to not change the name of files or directory.")
 			return False
-		print("Images loaded succesfully.")
 		return True
 
+	# Sets constatns, such as board width etc.
 	def set_constants(self) -> None:
 		const.WIDTH = self.gameBoard_img.get_width() // const.ROW
 		const.HEIGHT = self.gameBoard_img.get_height() // const.COLUMN
@@ -65,7 +65,6 @@ class Asset_manager(object):
 		const.BOARD_SIZE = self.gameBoard_img.get_width()
 		const.BUTTON_WIDTH = self.play_button[0].get_width()
 		const.BUTTON_HEIGHT = self.play_button[0].get_height()
-
 
 # Check if images can be loaded without error.
 if __name__ == '__main__':

@@ -1,9 +1,108 @@
 import Zobrist
 # ----- How it Works -----
+"""
+Boards are represented as 64bit integers, one for each color ->
+black_start_board = 0x810000000
+white_start_board = 0x1008000000
+print_board(white_start_board) ->| print_board(black_start_board) ->
+a b c d e f g h 				 | a b c d e f g h 
+- - - - - - - -					 | - - - - - - - -	
+0 0 0 0 0 0 0 0 | 1			  	 | 0 0 0 0 0 0 0 0 | 1	
+0 0 0 0 0 0 0 0 | 2 			 | 0 0 0 0 0 0 0 0 | 2	
+0 0 0 0 0 0 0 0 | 3 			 | 0 0 0 0 0 0 0 0 | 3	
+0 0 0 1 0 0 0 0 | 4				 | 0 0 0 0 1 0 0 0 | 4	
+0 0 0 0 1 0 0 0 | 5				 | 0 0 0 1 0 0 0 0 | 5	
+0 0 0 0 0 0 0 0 | 6				 | 0 0 0 0 0 0 0 0 | 6	
+0 0 0 0 0 0 0 0 | 7				 | 0 0 0 0 0 0 0 0 | 7	
+0 0 0 0 0 0 0 0	| 8				 | 0 0 0 0 0 0 0 0 | 8	
+------------------------------------------------------
+Zero is for empty space, One is if there is piece.
+Whole board is white_board "OR" (|) black_board.
+a b c d e f g h
+- - - - - - - -
+0 0 0 0 0 0 0 0 | 1
+0 0 0 0 0 0 0 0 | 2
+0 0 0 0 0 0 0 0 | 3
+0 0 0 1 1 0 0 0 | 4
+0 0 0 1 1 0 0 0 | 5
+0 0 0 0 0 0 0 0 | 6
+0 0 0 0 0 0 0 0 | 7
+0 0 0 0 0 0 0 0 | 8
+-------------------
+Empty board is Two's complement (~) Whole board (-> 1 for empty, 0 for occupied).
+a b c d e f g h
+- - - - - - - -
+1 1 1 1 1 1 1 1 | 1
+1 1 1 1 1 1 1 1 | 2
+1 1 1 1 1 1 1 1 | 3
+1 1 1 0 0 1 1 1 | 4
+1 1 1 0 0 1 1 1 | 5
+1 1 1 1 1 1 1 1 | 6
+1 1 1 1 1 1 1 1 | 7
+1 1 1 1 1 1 1 1 | 8
+-------------------
+Move generation: (For black)
+	North exmaple:
+		We can get moves to north, by left-shifting black board by 8, which results in:
+		targets = direction(curr_board)
+		  a b c d e f g h
+		  - - - - - - - -
+		| 0 0 0 0 0 0 0 0 | 1
+		| 0 0 0 0 0 0 0 0 | 2
+		| 0 0 0 0 1 0 0 0 | 3
+		| 0 0 0 1 0 0 0 0 | 4
+		| 0 0 0 0 0 0 0 0 | 5
+		| 0 0 0 0 0 0 0 0 | 6
+		| 0 0 0 0 0 0 0 0 | 7
+		| 0 0 0 0 0 0 0 0 | 8
+		---------------------
+		*Need to be careful about pieces on first row, since in python, they could go over 64bit range,
+		 thats why we "AND" (&) with Board full of 1 apart from first row, so we only work with pieces,
+		 under first row (obviously those on first row cant have any moves north).
 
+		Now	we "AND" (&) with white board, giving us one piece in this example:
+		targets = direction(curr_board) & enemy_board
+		  a b c d e f g h
+		  - - - - - - - -
+		| 0 0 0 0 0 0 0 0 | 1
+		| 0 0 0 0 0 0 0 0 | 2
+		| 0 0 0 0 0 0 0 0 | 3
+		| 0 0 0 1 0 0 0 0 | 4
+		| 0 0 0 0 0 0 0 0 | 5
+		| 0 0 0 0 0 0 0 0 | 6
+		| 0 0 0 0 0 0 0 0 | 7
+		| 0 0 0 0 0 0 0 0 | 8
+		---------------------
+		Now we repeat the same process, now shifting this board, and by using "OR" (|) saving found pieces.
+		for movement in range(5):
+				targets |= direction(targets) & enemy_board
+		Repeat 5 times, because we already shifted once, so now at the end of loop we are at row 2.
+		Finally to all possible moves add what we already found (in our case only 1 piece), shift it again, so
+		that we are on last row (1), and "AND" (&) with empty board
 
+		possible_moves |= (direction(targets) & empty_board)
+		direction(targets) -> 
+		  a b c d e f g h
+		  - - - - - - - -
+		| 0 0 0 0 0 0 0 0 | 1
+		| 0 0 0 0 0 0 0 0 | 2
+		| 0 0 0 1 0 0 0 0 | 3
+		| 0 0 0 0 0 0 0 0 | 4
+		| 0 0 0 0 0 0 0 0 | 5
+		| 0 0 0 0 0 0 0 0 | 6
+		| 0 0 0 0 0 0 0 0 | 7
+		| 0 0 0 0 0 0 0 0 | 8
+		---------------------
+		(direction(targets) & empty_board) is the same as direction(targets) in this case,
+		and this gives us all moves in north direction, do the same for all other
+		directions, when going West, East (+ diagonals with those directions), we need
+		to be careful about "a" column and "h" columns, so that when we shift, we dont
+		jump to another row.
 
-
+Flipping pieces:
+	We do almost the same thing as for generating moves, more comments are in function
+	generate_flipped().
+"""
 # ----- Move Generator -----
 class MoveGenerator():
 	""" Move generator for Othello (bit-board). """
@@ -239,6 +338,8 @@ class MoveGenerator():
 # than 11, not tested, adding depth to hash will extend
 # hash space, increasing the depth at which collisions will
 # inevitably happen.
+# Parallel and easily distributed Perft of reversi can be found on my
+# C++ folder on github.
 
 if __name__ == '__main__':
 	from timeit import default_timer as timer
@@ -253,7 +354,6 @@ if __name__ == '__main__':
 	end = timer()
 	print(f"Calculation took {end-start} seconds.")
 	print(f"Moves found: {move_gen.count}")
-	
 
 
 

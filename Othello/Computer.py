@@ -2,40 +2,48 @@ import move_generator
 import patterns as pt
 
 class Player(object):
-	"""docstring for Smart02"""
-	def __init__(self, player, opponent):
+	""" Computer player for Othello. """
+	def __init__(self, player: int, opponent: int):
 		self.player = player
 		self.opponent = opponent
+		self.depth = 8 # Maximal search depth
 		self.move_gen = move_generator.MoveGenerator()
 		self.deep_round = 0
 		self.cut_off = 0
 		self.ordered = 0
-		self.evaluate = None
-		self.rows_cols_count = [0, 0, 0, 0, 1, 2, 5, 7, 10]
-		self.side_to_move = 0
 		self.cache_hits = 0
 		self.curr_round = 0
+		self.evaluate = None # Evaluation function.
+		# Score rewarding full patern, based on disc count.
+		self.rows_cols_count = [0, 0, 0, 0, 1, 2, 5, 7, 10]
+		self.side_to_move = 0
+		
 
 	# Returns move found by Min-Max, if no move was found, returns 0.
 	def move(self, my_board: int, opp_board: int) -> int:
-		self.curr_round += 1
+		self.curr_round += 1 # Current round count
+		# Clear hash_table every two rounds.
 		if self.curr_round%2 == 0:
 			self.move_gen.hash_gen.cache.clear()
 		self.deep_round = 0
-		self.depth = 8
 		pieces_count = bin(my_board | opp_board).count("1")
+		# Choose evaluation function based on current state of game.
 		if pieces_count < 12:
 			self.evaluate = self.early_eval
 		elif pieces_count >= 12 and pieces_count < 50:
 			self.evaluate = self.middle_eval
 			self.depth = 6
 		else:
+			self.depth = 8
 			self.evaluate = self.end_eval
 		score, move = self.NegaMax(my_board, opp_board, self.depth, float("-inf"), float("inf"), 1)
 		return move
 
+	# Simple getter.
 	def get_player(self) -> int:
 		return self.player
+
+	# -------- Evaluation Helpers -------- 
 
 	# Returns score for pieces, that are adjacents to other same colored pieces.
 	def adjacent(self, curr_board: int) -> int:
@@ -69,11 +77,83 @@ class Player(object):
 		score -= bin(curr_board^all_adjacent).count("1")
 		return score 
 
+	# Check patterns in all directions.
+	def patterns(self, board: int) -> int:
+		score = 0
+		# Pieces that are in full paters of either row/col/diag,
+		# add bonus points for being in more than 1 pattern.
+		pieces_in_patterns = 0 
+		for row, col in zip(pt.row_patterns, pt.col_patterns):
+			count = bin(board & row).count("1")
+			score += self.rows_cols_count[count]
+			count = bin(board & col).count("1")
+			score += self.rows_cols_count[count]
+			# Full pattern.
+			if board & row == row: 
+				pieces_in_patterns |= row
+			if board & col == col:
+				score += bin(col & pieces_in_patterns).count("1")*3
+				pieces_in_patterns |= col
+		# Left diagonals.
+		for diag in pt.diag_patterns:
+			count = bin(board & diag).count("1")
+			score += self.rows_cols_count[count]
+			# Full pattern.
+			if board & diag == diag:
+				score += bin(diag).count("1")*2
+				score += bin(diag & pieces_in_patterns).count("1")
+				pieces_in_patterns |= diag
+		# Right diagonals.
+		for diag in pt.diag2_pattern:
+			count = bin(board & diag).count("1")
+			score += self.rows_cols_count[count]
+			# Full pattern.
+			if board & diag == diag:
+				score += bin(diag).count("1")*2
+				score += bin(diag & pieces_in_patterns).count("1")
+		return score
+
+	# Check if there are any discs alone on rows or cols, 
+	# in future moves.
+	def frontiers(self, board: int, moves: int) -> int:
+		score = 0
+		while moves:
+			move = self.move_gen.bit_scan(moves)
+			moves ^= (1 << move)
+			x = (7-move//8)
+			y = 7-move%8
+			row = pt.row_patterns[x] & ((1 << move) | board)
+			col = pt.col_patterns[y] & ((1 << move) | board)
+			if row == 0:
+				score -= 1
+			if col == 0:
+				score -= 1
+			if col == 0 and row == 0:
+				score -= 2
+		return score
+
+	# Check if moves are adjacent to edges, and
+	# if player controls adjacent to edges with edge.
+	def edges(self, board: int, moves: int) -> int:
+		score = 0
+		# Check if moves are adjacent to edges without controling it
+		for i in range(4):
+			# Moving adjacent to corner and not controling it
+			if (pt.corners_adjacent[i] & moves != 0):
+				if (pt.corners_alone[i] & board == 0):
+					score -= 3
+			# Controling corner and pieces adjacent to it.
+			if ((pt.corners_adjacent[i] | pt.corners_alone[i]) & board) != 0:
+				score += 5
+		return score
+
+	# -------- Evaluation Functions -------- 
+
 	# Early game evaluation
 	def early_eval(self, curr_board: int, opp_board: int, my_moves: int) -> int:
 		score = 0
-		# Have more mobility, try to make opponent play outside "sweet" 16
 		opp_moves = self.move_gen.generate_moves(opp_board, curr_board)
+		# No moves case.
 		if my_moves == 0:
 			score -= 7
 		if opp_moves == 0:
@@ -89,8 +169,8 @@ class Player(object):
 			else:
 				return -1000000
 
-		score += bin(curr_board & pt.corners).count("1") * 10
-		score -= bin(opp_board & pt.corners).count("1") * 10
+		score += bin(curr_board & pt.corners).count("1") * 50
+		score -= bin(opp_board & pt.corners).count("1") * 50
 		# ------ Center board ------ 
 		# Make opponent play outside of center 16.
 		score += bin(pt.center & curr_board).count("1")
@@ -110,91 +190,25 @@ class Player(object):
 		score += bin(my_moves & pt.edges).count("1")*3
 		score -= bin(opp_moves & pt.edges).count("1")*3
 		# Moves on corners.
-		score += bin(my_moves & pt.corners).count("1") * 10
-		score -= bin(opp_moves & pt.corners).count("1") * 10
+		score += bin(my_moves & pt.corners).count("1") * 50
+		score -= bin(opp_moves & pt.corners).count("1") * 50
 		# Adjacent
-		score += self.adjacent(curr_board)
-		score -= self.adjacent(opp_board)
+		score += self.adjacent(curr_board)*2
+		score -= self.adjacent(opp_board)*2
 		return score
 
-	# Check patterns in all directions.
-	def patterns(self, board: int) -> int:
-		score = 0
-		pieces_in_patterns = 0 # Pieces that are in full paters of either row/col/diag
-		for row, col in zip(pt.row_patterns, pt.col_patterns):
-			count = bin(board & row).count("1")
-			score += self.rows_cols_count[count]
-			count = bin(board & col).count("1")
-			score += self.rows_cols_count[count]
-			# Full pattern
-			if board & row == row: 
-				pieces_in_patterns |= row
-			if board & col == col:
-				score += bin(col & pieces_in_patterns).count("1")*3
-				pieces_in_patterns |= col
-
-		for diag in pt.diag_patterns:
-			count = bin(board & diag).count("1")
-			score += self.rows_cols_count[count]
-			# Full pattern
-			if board & diag == diag:
-				score += bin(diag).count("1")*2
-				score += bin(diag & pieces_in_patterns).count("1")
-				pieces_in_patterns |= diag
-
-		for diag in pt.diag2_pattern:
-			count = bin(board & diag).count("1")
-			score += self.rows_cols_count[count]
-			# Full pattern
-			if board & diag == diag:
-				score += bin(diag).count("1")*2
-				score += bin(diag & pieces_in_patterns).count("1")
-		return score
-
-	# Check if there are any discs alone on rows or cols.
-	def frontiers(self, board: int, moves: int) -> int:
-		score = 0
-		while moves:
-			move = self.move_gen.bit_scan(moves)
-			moves ^= (1 << move)
-			x = (7-move//8)
-			y = 7-move%8
-			row = pt.row_patterns[x] & ((1 << move) | board)
-			col = pt.col_patterns[y] & ((1 << move) | board)
-			if row == 0:
-				score -= 1
-			if col == 0:
-				score -= 1
-			if col == 0 and row == 0:
-				score -= 1
-		return score
-
-	# Around edges.
-	def edges(self, board: int, moves: int) -> int:
-		score = 0
-		# Check if moves are adjacent to edges without controling it
-		for i in range(4):
-			# Moving adjacent to corner and not controling it
-			if (pt.corners_adjacent[i] & moves != 0):
-				if (pt.corners_alone[i] & board == 0):
-					score -= 3
-			# Controling corner and pieces adjacent to it.
-			if ((pt.corners_adjacent[i] | pt.corners_alone[i]) & board) != 0:
-				score += 5
-		return score
-
-	# Middle game evaluation, evaluate pt, diagonals, rows, cols, corners
+	# Middle game evaluation.
 	def middle_eval(self, curr_board: int, opp_board: int, my_moves: int) -> int:
 		score = 0
 		opp_moves = self.move_gen.generate_moves(opp_board, curr_board)
 		my_pieces_count = bin(curr_board).count("1")
 		opp_pieces_count = bin(opp_board).count("1")
-
+		# No moves case.
 		if my_moves == 0:
 			score -= 10
 		if opp_moves == 0:
 			score += 10
-		# winning, losing case
+		# Winning, losing, draw case.
 		if my_moves == 0 and opp_moves == 0:
 			if my_pieces_count > opp_pieces_count:
 				return 1000000
@@ -239,12 +253,12 @@ class Player(object):
 		opp_moves = self.move_gen.generate_moves(opp_board, curr_board)
 		my_pieces_count = bin(curr_board).count("1")
 		opp_pieces_count = bin(opp_board).count("1")
-
+		# No moves case.
 		if my_moves == 0:
-			score -= 50
+			score -= 30
 		if opp_moves == 0:
-			score += 50
-		# winning, losing case
+			score += 30
+		# Winning, losing, draw case.
 		if my_moves == 0 and opp_moves == 0:
 			if my_pieces_count > opp_pieces_count:
 				return 1000000
@@ -252,43 +266,47 @@ class Player(object):
 				return 0
 			else:
 				return -1000000
-
+		# Difference between pieces.
 		score += (my_pieces_count - opp_pieces_count)
+		# Difference between number of moves.
 		my_moves_count = bin(my_moves).count("1")
 		opp_moves_count = bin(opp_moves).count("1")
 		score += (my_moves_count-opp_moves_count)
-		# Check how many pieces can opponent flip
+		# Check how many pieces can opponent flip.
 		opp_flip = 0
 		while opp_moves:
 			move = (1 << self.move_gen.bit_scan(opp_moves))
 			opp_moves ^= move
 			opp_flip |= self.move_gen.generate_flipped(opp_board, curr_board, move)
-
-		# Check how many can i flip
+		# Check how many can i flip.
 		my_flip = 0
 		while my_moves:
 			move = (1 << self.move_gen.bit_scan(my_moves))
 			my_moves ^= move
 			my_flip |= self.move_gen.generate_flipped(curr_board, opp_board, move)
-
+		# Add score based on number of possible flips.
 		opp_flip = bin(opp_flip).count("1")
 		my_flip = bin(my_flip).count("1")
 		score += my_flip
 		score -= opp_flip
+		# Compare flip counts with number of moves.
 		if my_flip >= opp_flip:
 			score += 5
+			# Bonus score if i can flip more with less moves.
 			if my_moves_count <= opp_moves_count:
 				score += 15
-			else:
+			else: # Adjust score based on number of moves.
 				score -= (opp_moves_count-my_moves_count)
-		else:
+		else: # Less
 			score -= 5
+			# Adjust score based on number of moves.
 			if my_moves_count <= opp_moves_count:
 				score += (my_moves_count-opp_moves_count)
-			else:
+			else: # Minus score if i cant flip more with more moves.
 				score -= 15
 		return score
 
+	#  -------- Search Functions -------- 
 
 	# Orders move from highest scoring to lowest scoring, does by 
 	# performing search to depth 2 and evaluating resulting boards, 
@@ -374,6 +392,7 @@ class Player(object):
 				self.move_gen.hash_gen.hash ^= self.move_gen.hash_gen.hash_table[1][temp_move]
 			self.move_gen.hash_gen.hash ^= self.move_gen.hash_gen.hash_table[self.side_to_move][move]
 			# ------ Hash Changed -------
+			# Change player
 			self.side_to_move = ((self.side_to_move +1) & 1)
 			the_score, the_move = self.NegaMax(new_opp_board, new_curr_board, depth-1, -beta, -alpha, -side_to_move)
 			# Score comparison.
@@ -403,9 +422,6 @@ class Player(object):
 		self.move_gen.hash_gen.cache[self.move_gen.hash_gen.hash] = (score, best_move, depth)
 		return score, best_move
 
-
-
-
 if __name__ == '__main__':
 	from timeit import default_timer as timer
 	player = Player(0, 1)
@@ -414,6 +430,7 @@ if __name__ == '__main__':
 	start = timer()
 	move = player.move(white, black)
 	end = timer()
+	# Cache_hits, ordered, cut_off, deep_round are commented out.
 	print(f"Calculation took {end-start} seconds.")
 	print(f"Number of evaluated nodes: {player.deep_round}")
 	print(f"Number of cut-offs: {player.cut_off}")

@@ -12,27 +12,23 @@ class Othello():
 		self.game_board = board.Board()
 		self.assets = asset_manager.Asset_manager()
 		self.buttons = {}
-		self.message = {const.WHITE : "White player won", const.BLACK : "Black player won", const.DRAW : "Draw"}
-		self.computer_player = None
 		self.done = False
 		self.playing = False
 		self.re_playing = False
 		self.screen = None
 		self.clock = None
-		#
 		self.myFont = None
-		self.counts = [None, None]
 
 	# Determines who won.
 	def winner(self) -> str:
 		white_count = self.game_board.pieces_count[const.WHITE]
 		black_count = self.game_board.pieces_count[const.BLACK]
 		if (white_count > black_count):
-			return self.message[const.WHITE]
+			self.ask_restart(const.message[const.WHITE]) 
 		elif (white_count == black_count):
-			return self.message[const.DRAW]
+			self.ask_restart(const.message[const.DRAW]) 
 		else:
-			return self.message[const.BLACK]
+			self.ask_restart(const.message[const.BLACK])
 
 	# Initializes images, variables necessary for start.
 	def init(self) -> None:
@@ -43,6 +39,7 @@ class Othello():
 		self.myFont = pygame.font.SysFont("Times New Roman", 80)
 		# Load images.
 		if not self.assets.load_images():
+			sg.Popup("Coudnt find images, make sure to not change the name of files or directory.")
 			self.quit_game()
 
 		# ------------ Buttons ------------ 
@@ -103,18 +100,23 @@ class Othello():
 					self.screen.blit(self.assets.pieces_type[const.BLACK], 
 						(const.PIECE_WIDTH*col+2, const.PIECE_HEIGHT*row+2))
 
-	# Draws count of white and black pieces.
+	# Draws count of white and black pieces, current player.
 	def draw_counts(self) -> None:
+		# White.
 		white_count = self.myFont.render(
 			str(self.game_board.pieces_count[const.WHITE]), 1, const.COLORS[const.GREY])
 		self.screen.blit(white_count, (const.BOARD_SIZE, 390))
 		self.screen.blit(self.assets.pieces_type[const.WHITE], 
 			(const.BOARD_SIZE+75, 400))
+		# Black.
 		black_count = self.myFont.render(
 			str(self.game_board.pieces_count[const.BLACK]), 1, const.COLORS[const.GREY])
 		self.screen.blit(black_count, (const.BOARD_SIZE+150, 390))
 		self.screen.blit(self.assets.pieces_type[const.BLACK], 
 			(const.BOARD_SIZE+160+70, 400))
+		# Current player.
+		self.screen.blit(self.assets.pieces_type[self.game_board.current_player],
+			(const.BOARD_SIZE+120, 320))
 
 	# --------- Main program loop --------- 
 
@@ -125,7 +127,7 @@ class Othello():
 			self.render()
 			self.game_board.check_computer()
 			if (self.game_board.check_win()):
-				print(self.winner)
+				self.winner()
 			self.events()
 		self.quit_game()
 
@@ -134,6 +136,7 @@ class Othello():
 		self.screen.fill(const.COLORS[const.BLACK])
 		self.draw_board()
 		self.draw_counts()
+		# Render buttons.
 		for to_show, button in self.buttons.values():
 			if to_show:
 				button.display(self.screen)
@@ -153,15 +156,13 @@ class Othello():
 					row, column = const.row_col_pos(*pos)
 					# Placed the piece where user click, if position is valid
 					if const.valid_pos(row, column) and self.playing:
-						print("Clicked")
 						if (self.game_board.check_move(row, column)):
 							if (self.game_board.check_win()):
 								self.render()
-								print(self.winner())
-								self.ask_restart()
+								self.winner()
 				except AttributeError:
-					print("AttributeError")
-
+					pass
+			# Events passed in buttongs.
 			for to_show, button in self.buttons.values():
 				if to_show:
 					if (button.handle_event(event, *pos)):
@@ -174,26 +175,21 @@ class Othello():
 		button_tuple = self.buttons.get(button_name)
 		if button_tuple: # Is not None.
 			self.buttons.update({button_name : (False, button_tuple[1])})
-		else:
-			print(f"Button {button_name} does not exists.")
 
 	# Shows button on screen.
 	def show_button(self, button_name: str) -> None:
 		button_tuple = self.buttons.get(button_name)
 		if button_tuple: # Is not None.
 			self.buttons.update({button_name : (True, button_tuple[1])})
-		else:
-			print(f"Button {button_name} does not exists.")
 		
 	# Asks user if he wants to play against AI, and starting color.
 	def play(self) -> None:
-		sg.theme("Dark Brown")
 		event, values = sg.Window("Game settings", [[sg.Text("Select ->"), 
 			sg.Listbox(["Vs AI", "Start as White", "Start as Black", "Ai start as White",
 				"Ai start as Black"], 
 				select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, size=(40, 5), key="LB")],
 		    		[sg.Button("Ok"), sg.Button("Cancel")]], keep_on_top=True).read(close=True)
-
+		# User clicked "Ok".
 		if event == "Ok":
 			self.playing = True
 			ai = False
@@ -202,26 +198,23 @@ class Othello():
 			self.hide_button("play")
 			self.hide_button("replay")
 			self.show_button("back")
-			sg.popup(f"You chose {values['LB']}")
 			for i in values["LB"]:
 				if i == "Vs AI":
-					print("Playing against computer")
 					ai = True
 				elif i == "Start as White":
 					self.game_board.set_players(const.WHITE)
-					print("Starting as White")
+					ai_color = const.BLACK
 				elif i == "Ai start as White":
 					self.game_board.set_players(const.WHITE)
+					ai_color = const.WHITE
 				elif i == "Ai start as Black":
 					self.game_board.set_players(const.BLACK)
 					ai_color = const.BLACK
-				else:
+				else: # "Start as Black"
 					self.game_board.set_players(const.BLACK)
-					print("Starting as Black")
+					ai_color = const.BLACK
 			if ai:
 				self.game_board.start_computer(ai_color)
-		else:
-			sg.popup_cancel("User aborted")
 
 	# Takes user to replay state.
 	def replay(self) -> None:
@@ -249,15 +242,13 @@ class Othello():
 		self.playing = False
 		
 	# Asks usert to restart the game.
-	def ask_restart(self) -> None:
-		sg.theme("Dark Brown")
-		event = sg.PopupYesNo("Restart?", keep_on_top=True)
+	def ask_restart(self, string: str) -> None:
+		event = sg.PopupYesNo(string+", restart?" , keep_on_top=True)
 		# Go back to menu
 		if event == "Yes":
 			self.game_board.remove_computer()
 			self.game_board.init()
 			# Change first button
-			self.computer_player = None
 			self.playing = False
 			self.hide_button("back")
 			self.show_button("play")
@@ -272,6 +263,7 @@ class Othello():
 
 
 if __name__ == '__main__':
+	sg.theme("Dark Brown")
 	othello = Othello()
 	othello.run()
 

@@ -14,7 +14,6 @@ class Button(object):
 		if self.rect.collidepoint((x, y)):
 			self.display_hover = True	
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				print('Button pressed.')
 				self.callback()
 				return True
 			return False
@@ -28,7 +27,4 @@ class Button(object):
 			screen.blit(self.img_up, (self.rect[0], self.rect[1]))
 		else:
 			screen.blit(self.img_down, (self.rect[0], self.rect[1]))
-
-if __name__ == '__main__':
-	pass
-		
+	

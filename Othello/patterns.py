@@ -1,5 +1,3 @@
-import move_generator
-move_gen = move_generator.MoveGenerator()
 row_patterns = []
 col_patterns = []
 diag_patterns = []
@@ -42,6 +40,8 @@ corners_alone = [1, (1 << 7), (1 << 56), (1 << 63)]
 corners_adjacent = [((1 << 1) | (1 << 8)),  ((1 << 15) | (1 << 6)),  ((1 << 57) | (1 << 48)), ((1 << 62) | (1 << 55))]
 corners_and_adjacent = corners | sum(corners_adjacent)
 if __name__ == '__main__':
+	import move_generator
+	move_gen = move_generator.MoveGenerator()
 	for row, col in zip(row_patterns, col_patterns):
 		move_gen.print_board(row | col)
 
