@@ -4,18 +4,30 @@ import Zobrist
 Boards are represented as 64bit integers, one for each color ->
 black_start_board = 0x810000000
 white_start_board = 0x1008000000
-print_board(white_start_board) ->| print_board(black_start_board) ->
-a b c d e f g h 				 | a b c d e f g h 
-- - - - - - - -					 | - - - - - - - -	
-0 0 0 0 0 0 0 0 | 1			  	 | 0 0 0 0 0 0 0 0 | 1	
-0 0 0 0 0 0 0 0 | 2 			 | 0 0 0 0 0 0 0 0 | 2	
-0 0 0 0 0 0 0 0 | 3 			 | 0 0 0 0 0 0 0 0 | 3	
-0 0 0 1 0 0 0 0 | 4				 | 0 0 0 0 1 0 0 0 | 4	
-0 0 0 0 1 0 0 0 | 5				 | 0 0 0 1 0 0 0 0 | 5	
-0 0 0 0 0 0 0 0 | 6				 | 0 0 0 0 0 0 0 0 | 6	
-0 0 0 0 0 0 0 0 | 7				 | 0 0 0 0 0 0 0 0 | 7	
-0 0 0 0 0 0 0 0	| 8				 | 0 0 0 0 0 0 0 0 | 8	
-------------------------------------------------------
+print_board(white_start_board) ->
+a b c d e f g h 				 
+- - - - - - - -					 	
+0 0 0 0 0 0 0 0 | 1			  	 	
+0 0 0 0 0 0 0 0 | 2 			 	
+0 0 0 0 0 0 0 0 | 3 			 
+0 0 0 1 0 0 0 0 | 4				 	
+0 0 0 0 1 0 0 0 | 5				 
+0 0 0 0 0 0 0 0 | 6				 
+0 0 0 0 0 0 0 0 | 7				 
+0 0 0 0 0 0 0 0	| 8
+-------------------				 
+print_board(black_start_board) ->
+a b c d e f g h 
+- - - - - - - -
+0 0 0 0 0 0 0 0 | 1
+0 0 0 0 0 0 0 0 | 2
+0 0 0 0 0 0 0 0 | 3	
+0 0 0 0 1 0 0 0 | 4
+0 0 0 1 0 0 0 0 | 5	
+0 0 0 0 0 0 0 0 | 6	
+0 0 0 0 0 0 0 0 | 7	
+0 0 0 0 0 0 0 0 | 8	
+-------------------
 Zero is for empty space, One is if there is piece.
 Whole board is white_board "OR" (|) black_board.
 a b c d e f g h
