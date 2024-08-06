@@ -162,7 +162,7 @@ class Othello():
 								self.winner()
 				except AttributeError:
 					pass
-			# Events passed in buttongs.
+			# Events passed in buttons.
 			for to_show, button in self.buttons.values():
 				if to_show:
 					if (button.handle_event(event, *pos)):

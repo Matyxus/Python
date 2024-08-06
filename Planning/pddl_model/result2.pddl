@@ -1,0 +1,8 @@
+(cross-together b a l r)
+(cross-together f e l r)
+(pass-torch f b t2 r)
+(cross-together b a r l)
+(pass-torch a c t1 l)
+(cross-together d c l r)
+(cross-together b a l r)
+; cost = 16 (general cost)

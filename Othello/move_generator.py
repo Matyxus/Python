@@ -130,6 +130,7 @@ class MoveGenerator():
 		self.hash_gen = Zobrist.Zobrist(0x1008000000, 0x810000000)
 		self.count = 0
 		self.side_to_move = 0 # White
+		self.cache_hits = 0
 
 	# From bit-board prints its binary representation.
 	def print_board(self, board: int) -> None:
@@ -235,6 +236,7 @@ class MoveGenerator():
 		#curr_player = self.side_to_move
 		result = self.hash_gen.cache.get(self.hash_gen.hash)
 		if result:
+			#self.cache_hits += 1
 			self.count += result
 			return
 		moves_list = self.generate_moves(curr_board, opp_board)
@@ -351,7 +353,7 @@ class MoveGenerator():
 # than 11, not tested, adding depth to hash will extend
 # hash space, increasing the depth at which collisions will
 # inevitably happen.
-# Parallel and easily distributed Perft of reversi can be found on my
+# Parallel and easily distributable Perft of reversi can be found in my
 # C++ folder on github.
 
 if __name__ == '__main__':
@@ -367,6 +369,7 @@ if __name__ == '__main__':
 	end = timer()
 	print(f"Calculation took {end-start} seconds.")
 	print(f"Moves found: {move_gen.count}")
+	print(f"Cache hits: {move_gen.cache_hits}")
 
 
 

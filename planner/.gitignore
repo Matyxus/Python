@@ -1,0 +1,6 @@
+# Pycharm project folders
+.idea
+Scripts
+Lib
+pyvenv.cfg
+
